@@ -61,8 +61,8 @@ pub mod solana_centralized_relay {
         _ctx: Context<SendMessageCtx>,
         _to: String,
         _svc: String,
-        _sn: i128,
-        _msg: Vec<i8>,
+        _sn: u128,
+        _msg: Vec<u8>,
     ) -> Result<()> {
         require_keys_eq!(
             _ctx.accounts.user.key(),
@@ -79,6 +79,14 @@ pub mod solana_centralized_relay {
         }
         _ctx.accounts.centralized_connection_state.conn_sn += 1;
         // todo!("transfer funds from user to program")
+        let event = MessageEvent {
+            target_network: _to,
+            sn: _sn,
+            _msg,
+        };
+
+        // Emit the event
+        emit!(event);
         // todo!("emit message event");
         Ok(())
     }
@@ -87,7 +95,7 @@ pub mod solana_centralized_relay {
         _ctx: Context<RecvReceiptCtx>,
         _src_network: String,
         _conn_sn: u128,
-        _msg: Vec<i8>,
+        _msg: Vec<u8>,
     ) -> Result<()> {
         require_keys_eq!(
             _ctx.accounts.centralized_connection_state.admin_address,
@@ -185,13 +193,9 @@ pub struct SendMessageCtx<'info> {
 
     #[account(seeds = [b"fees", _to.as_bytes()] , bump)]
     pub fees: Account<'info, FeesState>,
-
-    #[account(init, payer=user, space = 8 + size_of::<MessageEvent>(), seeds = [b"messageEvent" , _sn.to_le_bytes().as_ref()] , bump)]
-    pub message_event: Account<'info, MessageEvent>,
 }
 
-#[account]
-#[derive(Default)]
+#[event]
 pub struct MessageEvent {
     pub target_network: String,
     pub sn: u128,
