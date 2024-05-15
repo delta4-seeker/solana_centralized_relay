@@ -1,4 +1,7 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{
+    prelude::*,
+    solana_program::{ program::invoke, system_instruction::transfer},
+};
 use std::mem::size_of;
 declare_id!("35XcNkLUyBHetw7CVZL6Gg9R1AhZgzS1ektLy1Yeiv8e");
 
@@ -12,10 +15,7 @@ pub mod solana_centralized_relay {
         _relayer: Pubkey,
         _xcall: Pubkey,
     ) -> Result<()> {
-        require_keys_eq!(
-            _ctx.accounts.centralized_connection_state.admin_address,
-            _ctx.accounts.user.key()
-        );
+
         _ctx.accounts.centralized_connection_state.admin_address = _relayer;
         _ctx.accounts.centralized_connection_state.xcall_address = _xcall;
         Ok(())
@@ -68,6 +68,7 @@ pub mod solana_centralized_relay {
             _ctx.accounts.user.key(),
             _ctx.accounts.centralized_connection_state.xcall_address
         );
+        
         let mut fee: u64 = 0;
         if _sn > 0 {
             fee = _ctx.accounts.fees.total_fees(true);
@@ -78,18 +79,26 @@ pub mod solana_centralized_relay {
             return Err(ErrorCode::InsufficientFee.into());
         }
         _ctx.accounts.centralized_connection_state.conn_sn += 1;
-        // todo!("transfer funds from user to program")
+
+        invoke(
+            &transfer(&_ctx.accounts.user.key(), &_ctx.accounts.centralized_connection_state.key(), fee),
+            &[
+                _ctx.accounts.user.to_account_info(),
+                _ctx.accounts.centralized_connection_state.to_account_info(),
+                _ctx.accounts.system_program.to_account_info(),
+            ],
+        )?;
+
         let event = MessageEvent {
             target_network: _to,
             sn: _sn,
             _msg,
         };
-
-        // Emit the event
         emit!(event);
-        // todo!("emit message event");
         Ok(())
     }
+
+    
 
     pub fn recv_receipt(
         _ctx: Context<RecvReceiptCtx>,
@@ -117,6 +126,9 @@ pub mod solana_centralized_relay {
     ) -> Result<bool> {
         return Ok(_ctx.accounts.receipt.receive_status);
     }
+
+
+    // pub fn withdraw fees
 }
 
 // Instructure context structures
