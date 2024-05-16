@@ -7,7 +7,7 @@ declare_id!("35XcNkLUyBHetw7CVZL6Gg9R1AhZgzS1ektLy1Yeiv8e");
 
 //Instructions
 #[program]
-pub mod solana_centralized_relay {
+pub mod solana_centralized_connection {
     use super::*;
 
     pub fn initialize(
@@ -42,10 +42,11 @@ pub mod solana_centralized_relay {
     ) -> Result<()> {
         require_keys_eq!(
             _ctx.accounts.user.key(),
-            _ctx.accounts.centralized_connection_state.admin_address
+            _ctx.accounts.centralized_connection_state.admin_address, ErrorCode::SignerIsNotAuthority
         );
         _ctx.accounts.fees.message_fees = _message_fee;
         _ctx.accounts.fees.response_fees = _response_fee;
+        _ctx.accounts.fees.network = _network;
         Ok(())
     }
     pub fn get_fee(_ctx: Context<GetFeeCtx>, _network: String, response: bool) -> Result<u64> {
@@ -144,8 +145,9 @@ pub struct InitializeCtx<'info> {
 
 #[derive(Accounts)]
 pub struct SetAdminCtx<'info> {
-    #[account(mut, seeds = [b"centralized_state"],  bump)]
+    #[account(mut)]
     pub user: Signer<'info>,
+    #[account(mut, seeds = [b"centralized_state"],  bump)]
     pub centralized_connection_state: Account<'info, CentralizedConnectionState>,
 }
 
@@ -156,20 +158,24 @@ pub struct GetAdminCtx<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(_network: String)]
+// #[instruction(_network: String)]
 pub struct SetFeeCtx<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
-    #[account(init, payer= user, space = 8 + size_of::<FeesState>(), seeds = [b"fees", _network.as_bytes()], bump)]
+    #[account(init, payer= user, space = 8 + size_of::<FeesState>(), seeds = [b"fees"], bump)]
+    // #[account(init, payer= user, space = 8 + size_of::<FeesState>(), seeds = [b"fees", _network.as_bytes().as_ref()], bump)]
     pub fees: Account<'info, FeesState>,
+    #[account( seeds = [b"centralized_state"],  bump)]
     pub centralized_connection_state: Account<'info, CentralizedConnectionState>,
     pub system_program: Program<'info, System>,
+
 }
 
 #[derive(Accounts)]
 #[instruction(_network: String)]
 pub struct GetFeeCtx<'info> {
-    #[account(seeds = [b"fees", _network.as_bytes()] , bump)]
+    #[account(seeds = [b"fees"] , bump)]
+    // #[account(seeds = [b"fees", _network.as_bytes().as_ref()] , bump)]
     pub fees: Account<'info, FeesState>,
 }
 
@@ -189,7 +195,7 @@ pub struct RecvReceiptCtx<'info> {
 #[derive(Accounts)]
 #[instruction(_network: String, _conn_sn: u64)]
 pub struct GetReceiptCtx<'info> {
-    #[account(seeds = [b"receipt" , _network.as_bytes(), &_conn_sn.to_le_bytes()] , bump)]
+    #[account(seeds = [b"receipt" , _network.as_bytes().as_ref(), &_conn_sn.to_le_bytes()] , bump)]
     pub receipt: Account<'info, ReceiptState>,
 }
 
@@ -203,7 +209,7 @@ pub struct SendMessageCtx<'info> {
     #[account( seeds = [b"centralized_state"],  bump)]
     pub centralized_connection_state: Account<'info, CentralizedConnectionState>,
 
-    #[account(seeds = [b"fees", _to.as_bytes()] , bump)]
+    #[account(seeds = [b"fees", _to.as_bytes().as_ref()] , bump)]
     pub fees: Account<'info, FeesState>,
 }
 
@@ -268,4 +274,9 @@ pub enum ErrorCode {
     DuplicateMessage,
     #[msg("Duplicate Message")]
     InvalidSerialNumber,
+    #[msg("SignerIsNotAuthority")]
+    SignerIsNotAuthority,
+    #[msg("InsufficientPoints")]
+    InsufficientPoints
 }
+
