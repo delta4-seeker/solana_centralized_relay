@@ -1575,7 +1575,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "solana_centralized_relay"
+name = "solana_centralized_connection"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",

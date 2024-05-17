@@ -5,7 +5,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-solana_centralized_relay = "35XcNkLUyBHetw7CVZL6Gg9R1AhZgzS1ektLy1Yeiv8e"
+solana_centralized_connection = "35XcNkLUyBHetw7CVZL6Gg9R1AhZgzS1ektLy1Yeiv8e"
 
 [registry]
 url = "https://api.apr.dev"

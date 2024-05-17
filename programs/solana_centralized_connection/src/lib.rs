@@ -61,7 +61,7 @@ pub mod solana_centralized_connection {
     pub fn send_message(
         _ctx: Context<SendMessageCtx>,
         _to: String,
-        _svc: String,
+        _svc: u128, // out of memory error occurs at testing when String or vec<> type is used here
         _sn: u128,
         _msg: Vec<u8>,
     ) -> Result<()> {
@@ -76,9 +76,9 @@ pub mod solana_centralized_connection {
         } else if _sn == 0 {
             fee = _ctx.accounts.fees.total_fees(false);
         }
-        if _ctx.remaining_accounts[0].lamports() < fee {
-            return Err(ErrorCode::InsufficientFee.into());
-        }
+        // if _ctx.remaining_accounts[0].lamports() < fee {
+        //     return Err(ErrorCode::InsufficientFee.into());
+        // }
         _ctx.accounts.centralized_connection_state.conn_sn += 1;
 
         invoke(
@@ -206,10 +206,11 @@ pub struct SendMessageCtx<'info> {
     pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
 
-    #[account( seeds = [b"centralized_state"],  bump)]
+    #[account( mut , seeds = [b"centralized_state"],  bump)]
     pub centralized_connection_state: Account<'info, CentralizedConnectionState>,
 
-    #[account(seeds = [b"fees", _to.as_bytes().as_ref()] , bump)]
+    // #[account(mut , seeds = [b"fees", _to.as_bytes().as_ref()] , bump)]
+    #[account(mut , seeds = [b"fees"] , bump)]
     pub fees: Account<'info, FeesState>,
 }
 
